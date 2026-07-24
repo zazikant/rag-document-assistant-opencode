@@ -1,12 +1,35 @@
 import OpenAI from 'openai';
 
-const opencode = new OpenAI({
-  baseURL: 'https://opencode.ai/zen/go/v1',
-  apiKey: process.env.OPENCODE_API_KEY,
-  timeout: 60_000, // 60s per-request timeout (legacy non-streaming path)
-});
+/**
+ * Lazy OpenAI client. We avoid constructing the client at module load time
+ * because the OpenAI SDK strictly requires a non-empty `apiKey` — and at
+ * Next.js build time, `process.env.OPENCODE_API_KEY` is undefined, which
+ * would fail "Collecting page data" with "Missing credentials".
+ *
+ * The client is created on first use, at which point the env var is set
+ * (in production on Vercel, or in `.env.local` for local dev).
+ */
+let _opencode: OpenAI | null = null;
+function getOpencodeClient(): OpenAI {
+  if (!_opencode) {
+    const apiKey = process.env.OPENCODE_API_KEY;
+    if (!apiKey) {
+      throw new Error('OPENCODE_API_KEY env var is not set');
+    }
+    _opencode = new OpenAI({
+      baseURL: 'https://opencode.ai/zen/go/v1',
+      apiKey,
+      timeout: 60_000, // 60s per-request timeout (legacy non-streaming path)
+    });
+  }
+  return _opencode;
+}
 
-export const opencodeClient = opencode;
+export const opencodeClient = new Proxy({} as OpenAI, {
+  get(_target, prop) {
+    return (getOpencodeClient() as any)[prop];
+  },
+});
 
 export type ChatCompletion = OpenAI.Chat.ChatCompletion;
 
@@ -74,7 +97,7 @@ export async function opencodeChatCompletion({
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      return await opencode.chat.completions.create({
+      return await getOpencodeClient().chat.completions.create({
         model,
         messages,
         temperature,
@@ -121,14 +144,17 @@ export async function* opencodeChatStream({
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      const stream = await opencode.chat.completions.create({
+      // `extra_body` (for thinking-disable) is not a standard OpenAI param, so
+      // the SDK's return-type inference widens to non-streaming. Force the
+      // streaming shape explicitly.
+      const stream = (await getOpencodeClient().chat.completions.create({
         model,
         messages,
         temperature,
         max_tokens: maxTokens,
         stream: true,
         ...DISABLE_THINKING,
-      } as any);
+      } as any)) as unknown as AsyncIterable<OpenAI.Chat.Completions.ChatCompletionChunk>;
       for await (const chunk of stream) {
         yield chunk;
       }

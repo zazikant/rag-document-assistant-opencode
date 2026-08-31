@@ -105,7 +105,7 @@ export async function opencodeChatCompletion({
         temperature,
         max_tokens: maxTokens,
         stream: false,
-        ...DISABLE_THINKING,
+        ...LOW_REASONING,
       } as any);
     } catch (error: any) {
       lastError = error;
@@ -155,7 +155,7 @@ export async function* opencodeChatStream({
         temperature,
         max_tokens: maxTokens,
         stream: true,
-        ...DISABLE_THINKING,
+        ...LOW_REASONING,
       } as any)) as unknown as AsyncIterable<OpenAI.Chat.Completions.ChatCompletionChunk>;
       for await (const chunk of stream) {
         yield chunk;

@@ -45,17 +45,17 @@ export const STREAM_MAX_ATTEMPTS = 1;
 /**
  * CRITICAL: GLM 5.3 (currently served behind the glm-5.1 alias on the
  * opencode.ai/zen/go gateway) is a thinking-only model. Disabling thinking
- * via `reasoning_effort: "none"` triggers upstream error 1210. We use
- * `reasoning_effort: "low"` to keep reasoning overhead minimal while still
- * producing the final answer in `content`.
+ * via `reasoning_effort: "none"` or `thinking: { type: "disabled" }`
+ * triggers upstream errors. We use `reasoning_effort: "low"` to keep
+ * reasoning overhead minimal while still producing the final answer in
+ * `content`.
  *
- * We also send `extra_body: { thinking: { type: "disabled" } }` as a
- * belt-and-suspenders signal that the gateway may forward to the upstream
- * provider.
+ * NOTE: Do NOT combine `reasoning_effort` with `thinking.type="disabled"` —
+ * the upstream rejects: "thinking.type='disabled' conflicts with a
+ * non-'none' reasoning_effort".
  */
-const DISABLE_THINKING = {
+const LOW_REASONING = {
   reasoning_effort: 'low' as const,
-  extra_body: { thinking: { type: 'disabled' } },
 };
 
 /**
@@ -214,10 +214,10 @@ export interface ControlledStreamResult {
  * - Emits structured log lines via onLog callback
  * - Returns full content + reasoning + timing metadata
  *
- * CRITICAL: Sends `reasoning_effort: "low"` and
- * `extra_body: { thinking: { type: "disabled" } }` to keep GLM 5.3's
- * reasoning overhead minimal while still ensuring the final answer lands
- * in `content`.
+ * CRITICAL: Sends `reasoning_effort: "low"` to keep GLM 5.3's reasoning
+ * overhead minimal while still ensuring the final answer lands in
+ * `content`. Do NOT pair with `thinking: { type: "disabled" }` — the
+ * upstream rejects the combination.
  */
 export async function opencodeChatStreamControlled(
   opts: ControlledStreamOptions,
@@ -254,7 +254,6 @@ export async function opencodeChatStreamControlled(
           temperature: opts.temperature ?? 0.7,
           stream: true,
           reasoning_effort: 'low',
-          thinking: { type: 'disabled' },
         }),
         signal: controller.signal,
       });

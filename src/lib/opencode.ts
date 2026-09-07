@@ -1,5 +1,12 @@
 import OpenAI from 'openai';
-import { randomUUID } from 'node:crypto';
+
+/**
+ * Generate a stable per-conversation UUID using the Web Crypto API.
+ * Edge Runtime (used by /api/query-stream) cannot import 'node:crypto', so we
+ * use the global `crypto.randomUUID()` which is available in both Edge and
+ * Node runtimes (Node 19+, all browsers).
+ */
+const newSessionId = (): string => crypto.randomUUID();
 
 /**
  * Lazy OpenAI client. We avoid constructing the client at module load time
@@ -27,7 +34,7 @@ function getOpencodeClient(): OpenAI {
       // serverless invocation, which is what the gateway expects for
       // prompt-cache affinity within one conversation.
       // See https://opencode.ai/docs/go/#where-can-i-use-it
-      defaultHeaders: { 'x-opencode-session': randomUUID() },
+      defaultHeaders: { 'x-opencode-session': newSessionId() },
     });
   }
   return _opencode;
@@ -258,7 +265,7 @@ export async function opencodeChatStreamControlled(
           // per call here is fine — the streaming path typically makes one call
           // per pipeline stage, and stable sessionId across stages is owned by
           // the caller if/when they want cache affinity.
-          'x-opencode-session': randomUUID(),
+          'x-opencode-session': newSessionId(),
         },
         body: JSON.stringify({
           model,

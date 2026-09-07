@@ -1,4 +1,5 @@
 import OpenAI from 'openai';
+import { randomUUID } from 'node:crypto';
 
 /**
  * Lazy OpenAI client. We avoid constructing the client at module load time
@@ -20,6 +21,13 @@ function getOpencodeClient(): OpenAI {
       baseURL: 'https://opencode.ai/zen/go/v1',
       apiKey,
       timeout: 60_000, // 60s per-request timeout (legacy non-streaming path)
+      // OpenCode gateway requires this header for routing. Without it, the
+      // gateway returns HTTP 400 MissingSessionID (enforcement tightened
+      // 2026-09-06). The same UUID is reused for every call within this
+      // serverless invocation, which is what the gateway expects for
+      // prompt-cache affinity within one conversation.
+      // See https://opencode.ai/docs/go/#where-can-i-use-it
+      defaultHeaders: { 'x-opencode-session': randomUUID() },
     });
   }
   return _opencode;
@@ -246,6 +254,11 @@ export async function opencodeChatStreamControlled(
           'Content-Type': 'application/json',
           Authorization: `Bearer ${apiKey}`,
           Accept: 'text/event-stream',
+          // Required by OpenCode gateway routing (see file header). Fresh UUID
+          // per call here is fine — the streaming path typically makes one call
+          // per pipeline stage, and stable sessionId across stages is owned by
+          // the caller if/when they want cache affinity.
+          'x-opencode-session': randomUUID(),
         },
         body: JSON.stringify({
           model,

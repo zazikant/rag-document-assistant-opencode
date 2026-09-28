@@ -11,7 +11,7 @@
  *       • resumeFrom state machine — deterministic pipeline progression
  *       • Activity-style discrete steps — translate → validate → refine
  *
- * Provider: OpenCode API (https://opencode.ai/zen/go/v1) with model glm-5.1.
+ * Provider: OpenCode API (https://opencode.ai/zen/go/v1) with model glm-5.2.
  * The client handles thinking-mode disable internally; callers don't need
  * to set reasoning_effort or extra_body.
  *
@@ -368,7 +368,7 @@ export async function runTranslationStreamFast(
   emit({ type: 'stage-start', stage: 'translate', ts: t0 });
 
   let translatedText = '';
-  let model = input.model || 'glm-5.1';
+  let model = input.model || 'glm-5.2';
   const pipeline: string[] = ['fast-translate'];
 
   try {
@@ -454,7 +454,7 @@ export async function runTranslationStream(
   let translatedText = '';
   let qualityScore = 0;
   let issues: string[] = [];
-  let model = input.model || 'glm-5.1';
+  let model = input.model || 'glm-5.2';
 
   // ── Stage 1: Translate (with echo-detection retry) ────────────────────────
   if (resumeFrom === 'translate') {
@@ -931,7 +931,7 @@ export async function runTranslationStreamChunked(
     qualityScore: succeededChunks > 0 ? Math.round(totalQuality / succeededChunks) : 0,
     attempts: totalAttempts,
     refinements: totalRefinements,
-    model: input.model || 'glm-5.1',
+    model: input.model || 'glm-5.2',
     pipeline,
   };
   emit({ type: 'stage-end', stage: 'chunking', ok: succeededChunks > 0, elapsedMs: Date.now() - t0, summary: `${succeededChunks}/${chunks.length} chunks succeeded`, ts: Date.now() });

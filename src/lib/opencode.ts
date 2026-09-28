@@ -58,7 +58,7 @@ export const STREAM_CALL_TIMEOUT_MS = 120_000;
 export const STREAM_MAX_ATTEMPTS = 1;
 
 /**
- * CRITICAL: GLM 5.3 (currently served behind the glm-5.1 alias on the
+ * CRITICAL: GLM 5.3 (currently served behind the glm-5.2 alias on the
  * opencode.ai/zen/go gateway) is a thinking-only model. Disabling thinking
  * via `reasoning_effort: "none"` or `thinking: { type: "disabled" }`
  * triggers upstream errors. We use `reasoning_effort: "low"` to keep
@@ -96,7 +96,7 @@ function sleep(ms: number): Promise<void> {
  * Legacy non-streaming path — kept for backward compatibility.
  */
 export async function opencodeChatCompletion({
-  model = 'glm-5.1',
+  model = 'glm-5.2',
   messages,
   temperature = 0.7,
   maxTokens = 2048,
@@ -143,7 +143,7 @@ export async function opencodeChatCompletion({
  * Legacy streaming path — yields OpenAI SDK chunks.
  */
 export async function* opencodeChatStream({
-  model = 'glm-5.1',
+  model = 'glm-5.2',
   messages,
   temperature = 0.7,
   maxTokens = 2048,
@@ -237,7 +237,7 @@ export interface ControlledStreamResult {
 export async function opencodeChatStreamControlled(
   opts: ControlledStreamOptions,
 ): Promise<ControlledStreamResult> {
-  const model = opts.model || 'glm-5.1';
+  const model = opts.model || 'glm-5.2';
   const timeoutMs = opts.timeoutMs ?? STREAM_CALL_TIMEOUT_MS;
   const maxRetries = opts.maxRetries ?? STREAM_MAX_ATTEMPTS;
   const callStart = Date.now();
